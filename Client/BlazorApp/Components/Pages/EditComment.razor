@@ -79,12 +79,14 @@ else
 
     private async Task Save()
     {
-        // build DTO
-        var dto = new UpdateCommentDto(model!.Body);
+        var dto = new UpdateCommentDto(
+            model!.Body,
+            Session.CurrentUser!.Id            // REQUIRED
+        );
 
         await CommentService.UpdateAsync(Id, dto);
 
-        Nav.NavigateTo($"/posts/{model.PostId}");
+        Nav.NavigateTo($"/posts/{model!.PostId}");
     }
 
     private void GoBack()

@@ -57,6 +57,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         var post = await PostService.GetByIdAsync(Id);
+
         if (post is not null)
         {
             model = new UpdatePostModel
@@ -65,19 +66,27 @@ else
                 Body = post.Body
             };
         }
+
         loading = false;
     }
 
     private async Task UpdatePost()
     {
-        var dto = new UpdatePostDto(model!.Title, model!.Body);
+        var dto = new UpdatePostDto(
+            model!.Title,
+            model!.Body,
+            Session.CurrentUser!.Id
+        );
+
         await PostService.UpdateAsync(Id, dto);
         Nav.NavigateTo($"/posts/{Id}");
     }
 
     private async Task DeletePost()
     {
+        // FIXED — only 1 parameter now
         await PostService.DeleteAsync(Id);
+
         Nav.NavigateTo("/");
     }
 }

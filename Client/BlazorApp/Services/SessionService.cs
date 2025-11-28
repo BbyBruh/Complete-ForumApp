@@ -4,17 +4,24 @@ using ApiContracts;
 
 public class SessionService
 {
-    public UserDto? CurrentUser { get; private set; }
+    private UserDto? _currentUser;
+
+    public bool IsLoggedIn => _currentUser is not null;
+
+    public UserDto? CurrentUser => _currentUser;
 
     public void SetUser(UserDto user)
     {
-        CurrentUser = user;
+        _currentUser = user;
     }
 
+    public void Clear()
+    {
+        _currentUser = null;
+    }
+    
     public void Logout()
     {
-        CurrentUser = null;
+        _currentUser = null;
     }
-
-    public bool IsLoggedIn => CurrentUser is not null;
 }

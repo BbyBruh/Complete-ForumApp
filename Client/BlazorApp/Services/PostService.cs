@@ -5,14 +5,20 @@ public class PostService
 {
     private readonly HttpClient _client;
 
-    public PostService(HttpClient client)
+    public PostService(IHttpClientFactory factory)
     {
-        _client = client;
+        _client = factory.CreateClient("api");
     }
 
     public async Task<List<PostDto>> GetAllAsync()
     {
-        return await _client.GetFromJsonAsync<List<PostDto>>("posts");
+        return await _client.GetFromJsonAsync<List<PostDto>>("posts")
+               ?? new List<PostDto>();
+    }
+
+    public async Task<PostDto?> GetByIdAsync(int id)
+    {
+        return await _client.GetFromJsonAsync<PostDto>($"posts/{id}");
     }
 
     public async Task CreateAsync(CreatePostDto dto)
@@ -20,10 +26,7 @@ public class PostService
         var response = await _client.PostAsJsonAsync("posts", dto);
         response.EnsureSuccessStatusCode();
     }
-    public async Task<PostDto?> GetByIdAsync(int id)
-    {
-        return await _client.GetFromJsonAsync<PostDto>($"posts/{id}");
-    }
+
     public async Task UpdateAsync(int id, UpdatePostDto dto)
     {
         var response = await _client.PutAsJsonAsync($"posts/{id}", dto);
@@ -35,5 +38,4 @@ public class PostService
         var response = await _client.DeleteAsync($"posts/{id}");
         response.EnsureSuccessStatusCode();
     }
-
 }
