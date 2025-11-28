@@ -1,0 +1,56 @@
+@page "/register"
+@using ApiContracts
+@using BlazorApp.Components.Models
+@inject UserService UserService
+@inject NavigationManager Nav
+
+<h3>Register</h3>
+
+@if (errorMessage is not null)
+{
+    <p style="color:red">@errorMessage</p>
+}
+
+<EditForm Model="registerModel" OnValidSubmit="HandleRegister">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Username:</label><br />
+        <InputText @bind-Value="registerModel.UserName" />
+    </div>
+
+    <div>
+        <label>Password:</label><br />
+        <InputText @bind-Value="registerModel.Password" type="password" />
+    </div>
+
+    <button type="submit">Register</button>
+</EditForm>
+
+
+
+@code {
+    private RegisterModel registerModel = new();
+    private string? errorMessage;
+
+    private async Task HandleRegister()
+    {
+        try
+        {
+            var dto = new CreateUserDto(
+                registerModel.UserName,
+                registerModel.Password
+            );
+
+            await UserService.Register(dto);
+
+            Nav.NavigateTo("/login");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Registration failed: " + ex.Message;
+        }
+    }
+
+}

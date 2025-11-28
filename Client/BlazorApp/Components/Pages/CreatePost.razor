@@ -1,0 +1,69 @@
+@page "/create-post"
+@using ApiContracts
+@using BlazorApp.Services
+@inject PostService PostService
+@inject SessionService Session
+@inject NavigationManager Nav
+
+<h3>Create Post</h3>
+
+@if (!Session.IsLoggedIn)
+{
+    <p>You must be logged in to create a post.</p>
+    <NavLink href="/login">Go to Login</NavLink>
+    return;
+}
+
+@if (error is not null)
+{
+    <p style="color:red">@error</p>
+}
+
+<EditForm Model="model" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mt-2">
+        <label>Title</label><br />
+        <InputText @bind-Value="model.Title" class="form-control" />
+    </div>
+
+    <div class="mt-2">
+        <label>Body</label><br />
+        <InputTextArea @bind-Value="model.Body" class="form-control" />
+    </div>
+
+    <button class="btn btn-primary mt-3" type="submit">Create</button>
+</EditForm>
+
+@code {
+    private CreatePostModel model = new();
+    private string? error;
+
+    public class CreatePostModel
+    {
+        public string Title { get; set; } = "";
+        public string Body { get; set; } = "";
+    }
+
+    private async Task HandleSubmit()
+    {
+        error = null;
+
+        var dto = new CreatePostDto(
+            model.Title,
+            model.Body,
+            Session.CurrentUser!.Id   // logged in user
+        );
+
+        try
+        {
+            await PostService.CreateAsync(dto);
+            Nav.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            error = "Failed to create post: " + ex.Message;
+        }
+    }
+}

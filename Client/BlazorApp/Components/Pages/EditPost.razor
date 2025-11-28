@@ -1,0 +1,83 @@
+@page "/posts/edit/{Id:int}"
+@using BlazorApp.Services
+@using ApiContracts
+@inject PostService PostService
+@inject SessionService Session
+@inject NavigationManager Nav
+
+<h3>Edit Post</h3>
+
+@if (!Session.IsLoggedIn)
+{
+    <p>You must be logged in.</p>
+    <NavLink href="/login">Go to Login</NavLink>
+    return;
+}
+
+@if (loading)
+{
+    <p>Loading...</p>
+}
+else if (model is null)
+{
+    <p>Post not found.</p>
+}
+else
+{
+    <EditForm Model="model" OnValidSubmit="UpdatePost">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div>
+            <label>Title</label><br />
+            <InputText @bind-Value="model.Title" class="form-control" />
+        </div>
+
+        <div class="mt-2">
+            <label>Body</label><br />
+            <InputTextArea @bind-Value="model.Body" class="form-control" />
+        </div>
+
+        <button class="btn btn-primary mt-2" type="submit">Save</button>
+        <button class="btn btn-danger mt-2 ms-2" @onclick="DeletePost">Delete Post</button>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private UpdatePostModel? model;
+    private bool loading = true;
+
+    public class UpdatePostModel
+    {
+        public string Title { get; set; } = "";
+        public string Body { get; set; } = "";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var post = await PostService.GetByIdAsync(Id);
+        if (post is not null)
+        {
+            model = new UpdatePostModel
+            {
+                Title = post.Title,
+                Body = post.Body
+            };
+        }
+        loading = false;
+    }
+
+    private async Task UpdatePost()
+    {
+        var dto = new UpdatePostDto(model!.Title, model!.Body);
+        await PostService.UpdateAsync(Id, dto);
+        Nav.NavigateTo($"/posts/{Id}");
+    }
+
+    private async Task DeletePost()
+    {
+        await PostService.DeleteAsync(Id);
+        Nav.NavigateTo("/");
+    }
+}

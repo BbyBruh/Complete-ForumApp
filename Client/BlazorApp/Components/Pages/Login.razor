@@ -1,0 +1,65 @@
+@page "/login"
+@using ApiContracts
+@using BlazorApp.Services
+@inject UserService UserService
+@inject SessionService Session
+@inject NavigationManager Nav
+
+<h3>Login</h3>
+
+@if (error is not null)
+{
+    <p style="color:red">@error</p>
+}
+
+<EditForm Model="model" OnValidSubmit="HandleLogin">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Username:</label><br />
+        <InputText @bind-Value="model.UserName" />
+    </div>
+
+    <div class="mt-2">
+        <label>Password:</label><br />
+        <InputText @bind-Value="model.Password" type="password" />
+    </div>
+
+    <button class="btn btn-primary mt-3" type="submit">Login</button>
+</EditForm>
+
+@code {
+    private LoginModel model = new();
+    private string? error;
+
+    public class LoginModel
+    {
+        public string UserName { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+
+    private async Task HandleLogin()
+    {
+        error = null;
+
+        var dto = new LoginRequest(
+            model.UserName,
+            model.Password
+        );
+
+        var user = await UserService.Login(dto);
+
+        if (user is null)
+        {
+            error = "Invalid username or password.";
+            return;
+        }
+
+        // Save session
+        Session.SetUser(user);
+
+        // Redirect
+        Nav.NavigateTo("/");
+    }
+}

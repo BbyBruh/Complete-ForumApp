@@ -1,0 +1,165 @@
+@page "/posts/{Id:int}"
+@using ApiContracts
+@using BlazorApp.Components.Models
+@using BlazorApp.Services
+@inject PostService PostService
+@inject CommentService CommentService
+@inject SessionService Session
+@inject NavigationManager Nav
+
+<h3>Post Details</h3>
+
+@if (loading)
+{
+    <p>Loading...</p>
+}
+else if (post is null)
+{
+    <p>Post not found.</p>
+}
+else
+{
+    <div class="post-card">
+        <h2>@post.Title</h2>
+        <p>@post.Body</p>
+        <small>Author ID: @post.UserId</small>
+    </div>
+
+    <h4 class="mt-4">Comments</h4>
+
+    @if (comments.Count == 0)
+    {
+        <p>No comments yet.</p>
+    }
+    else
+    {
+        <div class="comment-list">
+            @foreach (var c in comments)
+            {
+                <div class="comment-card">
+                    <p>@c.Body</p>
+                    <small>By: @c.UserName</small>
+
+                    @if (Session.IsLoggedIn && Session.CurrentUser!.UserName == c.UserName)
+                    {
+                        
+                        <button class="btn btn-sm btn-secondary me-2"
+                                @onclick="@(() => Nav.NavigateTo($"/comments/edit/{c.Id}"))">
+                            Edit
+                        </button>
+                        
+                        <button class="btn btn-sm btn-secondary me-2"
+                                @onclick="@(() => EditComment(c.Id))">Edit</button>
+
+                        <button class="btn btn-sm btn-danger"
+                                @onclick="@(() => DeleteComment(c.Id))">Delete</button>
+                    }
+                </div>
+            }
+        </div>
+    }
+    
+    @if (!Session.IsLoggedIn)
+    {
+        <p>You must be logged in to comment.</p>
+        <NavLink href="/login">Go to Login</NavLink>
+    }
+    else
+    {
+        <h4>Add Comment</h4>
+
+        @if (error is not null)
+        {
+            <p style="color:red">@error</p>
+        }
+
+        <EditForm Model="commentModel" OnValidSubmit="SubmitComment">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div>
+                <label>Comment</label><br />
+                <InputTextArea @bind-Value="commentModel.Body"
+                               class="form-control" />
+            </div>
+
+            <button class="btn btn-primary mt-2" type="submit">Post Comment</button>
+        </EditForm>
+    }
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private PostDto? post;
+    private List<CommentDto> comments = new();
+    private CommentModel commentModel = new();
+    private bool loading = true;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        // Load post
+        try
+        {
+            post = await PostService.GetByIdAsync(Id);
+        }
+        catch
+        {
+            post = null;
+        }
+
+        // Load comments
+        comments = await CommentService.GetForPost(Id);
+
+        loading = false;
+    }
+
+    private async Task SubmitComment()
+    {
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(commentModel.Body))
+        {
+            error = "Comment cannot be empty.";
+            return;
+        }
+
+        var dto = new CreateCommentDto(
+            commentModel.Body,
+            Session.CurrentUser!.Id,
+            Id
+        );
+
+        try
+        {
+            await CommentService.CreateAsync(dto);
+
+            commentModel.Body = ""; // clear input box
+
+            // Refresh comment list
+            comments = await CommentService.GetForPost(Id);
+        }
+        catch (Exception ex)
+        {
+            error = "Failed to post comment: " + ex.Message;
+        }
+    }
+    
+    private async Task EditComment(int id)
+    {
+        Nav.NavigateTo($"/comments/edit/{id}");
+    }
+
+    private async Task DeleteComment(int id)
+    {
+        await CommentService.DeleteAsync(id);
+        comments = await CommentService.GetForPost(Id);
+    }
+
+}

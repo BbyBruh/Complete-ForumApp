@@ -1,0 +1,94 @@
+@page "/comments/edit/{Id:int}"
+@using ApiContracts
+@using BlazorApp.Services
+@inject CommentService CommentService
+@inject SessionService Session
+@inject NavigationManager Nav
+
+<h3>Edit Comment</h3>
+
+@if (loading)
+{
+    <p>Loading...</p>
+}
+else if (model is null)
+{
+    <p>Comment not found.</p>
+}
+else if (!Session.IsLoggedIn)
+{
+    <p>You must be logged in to edit your comment.</p>
+    <NavLink href="/login">Go to Login</NavLink>
+}
+else if (Session.CurrentUser!.Id != model.UserId)
+{
+    <p>You do not have permission to edit this comment.</p>
+}
+else
+{
+    <EditForm Model="model" OnValidSubmit="Save">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div>
+            <label>Body</label><br />
+            <InputTextArea @bind-Value="model.Body" class="form-control" />
+        </div>
+
+        <button class="btn btn-primary mt-2" type="submit">Save</button>
+        <button class="btn btn-secondary mt-2 ms-2" @onclick="GoBack">Cancel</button>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private EditCommentModel? model;
+    private bool loading = true;
+
+    public class EditCommentModel
+    {
+        public string Body { get; set; } = "";
+        public int UserId { get; set; }
+        public int PostId { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var comment = await CommentService.GetSingleAsync(Id);
+
+            if (comment is not null)
+            {
+                model = new EditCommentModel
+                {
+                    Body = comment.Body,
+                    UserId = comment.UserId,
+                    PostId = comment.PostId
+                };
+            }
+        }
+        catch
+        {
+            model = null;
+        }
+
+        loading = false;
+    }
+
+    private async Task Save()
+    {
+        // build DTO
+        var dto = new UpdateCommentDto(model!.Body);
+
+        await CommentService.UpdateAsync(Id, dto);
+
+        Nav.NavigateTo($"/posts/{model.PostId}");
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo($"/posts/{model!.PostId}");
+    }
+}
